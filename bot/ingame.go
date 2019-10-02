@@ -98,7 +98,7 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 	case data.DeclareRecipes:
 		// handleDeclareRecipesPacket(g, reader)
 	case data.EntityLookAndRelativeMove:
-		// err = handleEntityLookAndRelativeMove(g, reader)
+		err = handleEntityLookAndRelativeMove(c, p)
 	case data.EntityHeadLook:
 		// handleEntityHeadLookPacket(g, reader)
 	case data.EntityRelativeMove:
@@ -128,8 +128,10 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 		err = handleSoundEffect(c, p)
 	case data.NamedSoundEffect:
 		err = handleNamedSoundEffect(c, p)
+	case data.SpawnObject:
+		err = handleSpawnObjectPacket(c, p)
 	default:
-		// fmt.Printf("ignore pack id %X\n", p.ID)
+		//fmt.Printf("ignore pack id %X\n", p.ID)
 	}
 	return
 }
@@ -577,6 +579,25 @@ func handleWindowItemsPacket(c *Client, p pk.Packet) (err error) {
 	return c.Events.WindowsItem(byte(windowID), slots)
 }
 
+func handleSpawnObjectPacket(c *Client, p pk.Packet) error {
+	var (
+		EntityID, Type                  pk.VarInt
+		UUID                            pk.UUID
+		x, y, z                         pk.Double
+		Yaw, Pitch                      pk.Byte
+		VelocityX, VelocityY, VelocityZ pk.Short
+		Data                            pk.Int
+	)
+	err := p.Scan(&EntityID, &UUID, &Type, &x, &y, &z, &Pitch, &Yaw, &Data, &VelocityX, &VelocityY, &VelocityZ)
+	if err != nil {
+		return err
+	}
+	return c.Events.SpawnObj(
+		int(EntityID), [16]byte(UUID), int(Type),
+		float64(x), float64(y), float64(z), float32(Pitch), float32(Yaw), int(Data),
+		int16(VelocityX), int16(VelocityY), int16(VelocityZ))
+}
+
 func sendPlayerPositionAndLookPacket(c *Client) {
 	c.conn.WritePacket(pk.Marshal(
 		data.PlayerPositionAndLookServerbound,
@@ -587,4 +608,16 @@ func sendPlayerPositionAndLookPacket(c *Client) {
 		pk.Float(c.Pitch),
 		pk.Boolean(c.OnGround),
 	))
+}
+
+func handleEntityLookAndRelativeMove(c *Client, p pk.Packet) error {
+	var (
+		EID                    pk.VarInt
+		DeltaX, DeltaY, DeltaZ pk.Short
+	)
+	err := p.Scan(&EID, &DeltaX, &DeltaY, &DeltaZ)
+	if err != nil {
+		return err
+	}
+	return c.Events.EntityRelativeMove(int(EID), int(DeltaX), int(DeltaY), int(DeltaZ))
 }

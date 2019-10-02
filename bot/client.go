@@ -17,7 +17,6 @@ type Client struct {
 	abilities PlayerAbilities
 	settings  Settings
 	Wd        world.World //the map data
-
 	// Delegate allows you push a function to let HandleGame run.
 	// Do not send at the same goroutine!
 	Delegate chan func() error

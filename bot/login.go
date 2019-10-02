@@ -27,6 +27,8 @@ type Auth struct {
 	AsTk string
 }
 
+//验证服务器URL
+var SessionURL = "https://sessionserver.mojang.com/session/minecraft/join"
 // OfflineUUID return the UUID from player name in offline mode
 func OfflineUUID(name string) uuid.UUID {
 	var version = 3
@@ -43,6 +45,7 @@ func OfflineUUID(name string) uuid.UUID {
 
 // 加密请求
 func handleEncryptionRequest(c *Client, pack pk.Packet) error {
+	//设置验证服务器URL
 	//创建AES对称加密密钥
 	key, encoStream, decoStream := newSymmetricEncryption()
 
@@ -51,7 +54,7 @@ func handleEncryptionRequest(c *Client, pack pk.Packet) error {
 	if err := pack.Scan(&er); err != nil {
 		return err
 	}
-	err := loginAuth(c.AsTk, c.Name, c.Auth.UUID, key, er) //向Mojang验证
+	err := loginAuth(c.AsTk, c.Auth.UUID, key, er) //向Mojang验证
 	if err != nil {
 		return fmt.Errorf("login fail: %v", err)
 	}
@@ -155,36 +158,33 @@ type profile struct {
 }
 
 type request struct {
-	AccessToken     string  `json:"accessToken"`
-	SelectedProfile profile `json:"selectedProfile"`
-	ServerID        string  `json:"serverId"`
+	AccessToken     string `json:"accessToken"`
+	SelectedProfile string `json:"selectedProfile"`
+	ServerID        string `json:"serverId"`
 }
 
-func loginAuth(AsTk, name, UUID string, shareSecret []byte, er encryptionRequest) error {
+func loginAuth(AsTk, UUID string, shareSecret []byte, er encryptionRequest) error {
 	digest := authDigest(er.ServerID, shareSecret, er.PublicKey)
 
 	client := http.Client{}
 	requestPacket, err := json.Marshal(
 		request{
-			AccessToken: AsTk,
-			SelectedProfile: profile{
-				ID:   UUID,
-				Name: name,
-			},
-			ServerID: digest,
+			AccessToken:     AsTk,
+			SelectedProfile: UUID,
+			ServerID:        digest,
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("create request packet to yggdrasil faile: %v", err)
+		return fmt.Errorf("create request packet to yggdrasil fail: %v", err)
 	}
-
-	PostRequest, err := http.NewRequest(http.MethodPost, "https://sessionserver.mojang.com/session/minecraft/join",
+	PostRequest, err := http.NewRequest(http.MethodPost, SessionURL,
 		bytes.NewReader(requestPacket))
 	if err != nil {
 		return fmt.Errorf("make request error: %v", err)
 	}
 	PostRequest.Header.Set("User-agent", "go-mc")
 	PostRequest.Header.Set("Connection", "keep-alive")
+	PostRequest.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(PostRequest)
 	if err != nil {
 		return fmt.Errorf("post fail: %v", err)

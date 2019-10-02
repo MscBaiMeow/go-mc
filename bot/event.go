@@ -17,8 +17,10 @@ type eventBroker struct {
 	PluginMessage  func(channel string, data []byte) error
 	HeldItemChange func(slot int) error
 
-	WindowsItem       func(id byte, slots []entity.Slot) error
-	WindowsItemChange func(id byte, slotID int, slot entity.Slot) error
+	WindowsItem        func(id byte, slots []entity.Slot) error
+	WindowsItemChange  func(id byte, slotID int, slot entity.Slot) error
+	SpawnObj           func(EID int, UUID [16]byte, Type int, x, y, z float64, Pitch, Yaw float32, Data int, VelocityX, VelocitY, VelocitZ int16) error
+	EntityRelativeMove func(EID, DeltaX, DeltaY, DeltaZ int) error
 
 	// ReceivePacket will be called when new packet arrive.
 	// Default handler will run only if pass == false.
