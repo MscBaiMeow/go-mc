@@ -2,7 +2,6 @@ package bot
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io/ioutil"
 
@@ -52,6 +51,16 @@ func (c *Client) HandleGame() error {
 }
 
 func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
+	if c.Events.ReceivePacket != nil {
+		pass, err := c.Events.ReceivePacket(p)
+		if err != nil {
+			return false, err
+		}
+		if pass {
+			return false, nil
+		}
+	}
+
 	switch p.ID {
 	case data.JoinGame:
 		err = handleJoinGamePacket(c, p)
@@ -101,7 +110,7 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 	case data.SpawnPlayer:
 		// err = handleSpawnPlayerPacket(g, reader)
 	case data.WindowItems:
-		//err = handleWindowItemsPacket(c, p)
+		err = handleWindowItemsPacket(c, p)
 	case data.UpdateHealth:
 		err = handleUpdateHealthPacket(c, p)
 	case data.ChatMessageClientbound:
@@ -114,7 +123,7 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 		err = handleDisconnectPacket(c, p)
 		disconnect = true
 	case data.SetSlot:
-		//err = handleSetSlotPacket(c, p)
+		err = handleSetSlotPacket(c, p)
 	case data.SoundEffect:
 		err = handleSoundEffect(c, p)
 	case data.NamedSoundEffect:
@@ -184,6 +193,9 @@ func handleDisconnectPacket(c *Client, p pk.Packet) error {
 }
 
 func handleSetSlotPacket(c *Client, p pk.Packet) error {
+	if c.Events.WindowsItemChange == nil {
+		return nil
+	}
 	var (
 		windowID pk.Byte
 		slotI    pk.Short
@@ -193,22 +205,7 @@ func handleSetSlotPacket(c *Client, p pk.Packet) error {
 		return err
 	}
 
-	switch int8(windowID) {
-	case -1:
-		// set cursor slot
-
-	case 0:
-		if slotI >= 36 && slotI < 45 {
-			// Update Cooldown
-		}
-		fallthrough
-	case -2:
-		// set inventory
-		c.Inventory[slotI] = slot
-	default:
-		//other window
-	}
-	return nil
+	return c.Events.WindowsItemChange(byte(windowID), int(slotI), slot)
 }
 
 // func handleMultiBlockChangePacket(c *Client, p pk.Packet) error {
@@ -366,7 +363,7 @@ func (p *pluginMessageData) Decode(r pk.DecodeReader) error {
 	if err != nil {
 		return err
 	}
-	*p = pluginMessageData(data)
+	*p = data
 	return nil
 }
 
@@ -553,6 +550,10 @@ func handleKeepAlivePacket(c *Client, p pk.Packet) error {
 }
 
 func handleWindowItemsPacket(c *Client, p pk.Packet) (err error) {
+	if c.Events.WindowsItem == nil {
+		return nil
+	}
+
 	r := bytes.NewReader(p.Data)
 	var (
 		windowID pk.Byte
@@ -573,16 +574,7 @@ func handleWindowItemsPacket(c *Client, p pk.Packet) (err error) {
 		slots = append(slots, slot)
 	}
 
-	switch windowID {
-	case 0: //is player's inventory
-		if len(slots) != len(c.Inventory) {
-			return errors.New("inventory len not match")
-		}
-		for i, v := range slots { //copy this Inventory to player's Inventory
-			c.Inventory[i] = v
-		}
-	}
-	return nil
+	return c.Events.WindowsItem(byte(windowID), slots)
 }
 
 func sendPlayerPositionAndLookPacket(c *Client) {

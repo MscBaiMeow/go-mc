@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/Tnze/go-mc/yggdrasil"
 	"log"
 )
@@ -17,7 +19,10 @@ func ExamplePingAndList() {
 
 func ExampleClient_JoinServer_offline() {
 	c := NewClient()
-	c.Name = "Tnze" // set it's name before login.
+	c.Auth.Name = "Tnze" // set it's name before login.
+
+	id := OfflineUUID(c.Auth.Name) // optional, get uuid of offline mode game
+	c.Auth.UUID = hex.EncodeToString(id[:])
 
 	//Login
 	err := c.JoinServer("localhost", 25565)
@@ -47,9 +52,9 @@ func ExampleClient_JoinServer_online() {
 	if err != nil {
 		panic(err)
 	}
-	c.Name = auth.SelectedProfile.Name
-	c.Auth.UUID = auth.SelectedProfile.ID
-	c.AsTk = auth.AccessToken
+
+	c.Auth.UUID, c.Name = auth.SelectedProfile()
+	c.AsTk = auth.AccessToken()
 
 	//Connect server
 	err = c.JoinServer("localhost", 25565)
@@ -69,4 +74,11 @@ func ExampleClient_JoinServer_online() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func ExampleOfflineUUID() {
+	fmt.Println(OfflineUUID("Tnze"))
+
+	// output:
+	//	c7b9eece-2f2e-325c-8da8-6fc8f3d0edb0
 }
