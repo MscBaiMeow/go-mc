@@ -7,5 +7,5 @@
     },
     "go.useLanguageServer": true,
     "go.formatTool": "gofmt",
-    "go.inferGopath": true,
+    "go.inferGopath": false,
 }
