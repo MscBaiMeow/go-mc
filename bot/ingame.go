@@ -98,11 +98,12 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 	case data.DeclareRecipes:
 		// handleDeclareRecipesPacket(g, reader)
 	case data.EntityLookAndRelativeMove:
-		err = handleEntityLookAndRelativeMove(c, p)
+		err = handleEntityRelativeMove(c, p)
+		//AutoFish不需要浮漂的朝向所以可以丢一起
 	case data.EntityHeadLook:
 		// handleEntityHeadLookPacket(g, reader)
 	case data.EntityRelativeMove:
-		// err = handleEntityRelativeMovePacket(g, reader)
+		err = handleEntityRelativeMove(c, p)
 	case data.KeepAliveClientbound:
 		err = handleKeepAlivePacket(c, p)
 	case data.Entity:
@@ -610,7 +611,7 @@ func sendPlayerPositionAndLookPacket(c *Client) {
 	))
 }
 
-func handleEntityLookAndRelativeMove(c *Client, p pk.Packet) error {
+func handleEntityRelativeMove(c *Client, p pk.Packet) error {
 	var (
 		EID                    pk.VarInt
 		DeltaX, DeltaY, DeltaZ pk.Short
