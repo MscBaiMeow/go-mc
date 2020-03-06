@@ -6,10 +6,8 @@ import (
 )
 
 // Validate checks if an accessToken is usable for authentication with a Minecraft server.
-func (a *Access) Validate(asTk string) (bool, error) {
-	pl := Tokens{
-		AccessToken: asTk,
-	}
+func (a *Access) Validate() (bool, error) {
+	pl := a.ar.Tokens
 	resp, err := rawPost("/validate", pl)
 	if err != nil {
 		return false, fmt.Errorf("request fail: %v", err)
