@@ -69,3 +69,8 @@ type PlayerAbilities struct {
 type Position struct {
 	X, Y, Z int
 }
+
+//SettingMapRead 设置是否读取地图
+func (c *Client) SettingMapRead(a bool) {
+	c.settings.ReceiveMap = a
+}
