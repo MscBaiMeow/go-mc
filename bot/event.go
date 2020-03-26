@@ -25,4 +25,5 @@ type eventBroker struct {
 	// ReceivePacket will be called when new packet arrive.
 	// Default handler will run only if pass == false.
 	ReceivePacket func(p pk.Packet) (pass bool, err error)
+	Test          func(EntityID int) error
 }

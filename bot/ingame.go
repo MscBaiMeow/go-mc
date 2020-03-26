@@ -132,6 +132,8 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 		err = handleNamedSoundEffect(c, p)
 	case data.SpawnObject:
 		err = handleSpawnObjectPacket(c, p)
+	case data.EntityMetadata:
+		err = handleEntityMetadata(c, p)
 	default:
 		//fmt.Printf("ignore pack id %X\n", p.ID)
 	}
@@ -602,6 +604,9 @@ func handleWindowItemsPacket(c *Client, p pk.Packet) (err error) {
 }
 
 func handleSpawnObjectPacket(c *Client, p pk.Packet) error {
+	if c.Events.SpawnObj == nil {
+		return nil
+	}
 	var (
 		EntityID, Type                  pk.VarInt
 		UUID                            pk.UUID
@@ -633,6 +638,9 @@ func sendPlayerPositionAndLookPacket(c *Client) {
 }
 
 func handleEntityRelativeMove(c *Client, p pk.Packet) error {
+	if c.Events.EntityRelativeMove == nil {
+		return nil
+	}
 	var (
 		EID                    pk.VarInt
 		DeltaX, DeltaY, DeltaZ pk.Short
@@ -642,4 +650,16 @@ func handleEntityRelativeMove(c *Client, p pk.Packet) error {
 		return err
 	}
 	return c.Events.EntityRelativeMove(int(EID), int(DeltaX), int(DeltaY), int(DeltaZ))
+}
+
+func handleEntityMetadata(c *Client, p pk.Packet) error {
+	if c.Events.Test == nil {
+		return nil
+	}
+	var EntityID pk.VarInt
+	p.Scan(&EntityID)
+	if EntityID != 102 {
+		return nil
+	}
+	return c.Events.Test(int(EntityID))
 }
