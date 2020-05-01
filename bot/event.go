@@ -21,6 +21,7 @@ type eventBroker struct {
 	WindowsItemChange  func(id byte, slotID int, slot entity.Slot) error
 	SpawnObj           func(EID int, UUID [16]byte, Type int, x, y, z float64, Pitch, Yaw float32, Data int, VelocityX, VelocitY, VelocitZ int16) error
 	EntityRelativeMove func(EID, DeltaX, DeltaY, DeltaZ int) error
+	Particle           func(ID int, longDistance bool, x, y, z float64, offsetX, offsetY, offsetZ float32, particleData float32, particleCount int) error
 
 	// ReceivePacket will be called when new packet arrive.
 	// Default handler will run only if pass == false.

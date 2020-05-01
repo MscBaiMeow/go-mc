@@ -134,6 +134,8 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 		err = handleSpawnObjectPacket(c, p)
 	case data.EntityMetadata:
 		err = handleEntityMetadata(c, p)
+	case data.Particle:
+		err = handleParticle(c, p)
 	default:
 		//fmt.Printf("ignore pack id %X\n", p.ID)
 	}
@@ -662,4 +664,24 @@ func handleEntityMetadata(c *Client, p pk.Packet) error {
 		return nil
 	}
 	return c.Events.Test(int(EntityID))
+}
+
+func handleParticle(c *Client, p pk.Packet) error {
+	if c.Events.Particle == nil {
+		return nil
+	}
+	var (
+		ID, particleCount                       pk.Int
+		longDistance                            pk.Boolean
+		x, y, z                                 pk.Double
+		offsetX, offsetY, offsetZ, particleData pk.Float
+	)
+	err := p.Scan(&ID, &longDistance)
+	if err != nil {
+		return err
+	}
+	return c.Events.Particle(int(ID), bool(longDistance),
+		float64(x), float64(y), float64(z),
+		float32(offsetX), float32(offsetY), float32(offsetZ),
+		float32(particleData), int(particleCount))
 }
