@@ -676,7 +676,7 @@ func handleParticle(c *Client, p pk.Packet) error {
 		x, y, z                                 pk.Double
 		offsetX, offsetY, offsetZ, particleData pk.Float
 	)
-	err := p.Scan(&ID, &longDistance)
+	err := p.Scan(&ID, &longDistance, &x, &y, &z, &offsetX, &offsetY, &offsetZ, &particleData, &particleCount)
 	if err != nil {
 		return err
 	}
