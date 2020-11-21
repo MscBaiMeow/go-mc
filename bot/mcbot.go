@@ -7,44 +7,46 @@ package bot
 import (
 	"fmt"
 	"net"
+	"strconv"
 
+	"github.com/Tnze/go-mc/data"
 	mcnet "github.com/Tnze/go-mc/net"
 	pk "github.com/Tnze/go-mc/net/packet"
 )
 
 // ProtocolVersion , the protocol version number of minecraft net protocol
-const ProtocolVersion = 736
+const ProtocolVersion = 754
 
 // JoinServer connect a Minecraft server for playing the game.
 func (c *Client) JoinServer(addr string, port int) (err error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", addr, port))
-	if err != nil {
-		err = fmt.Errorf("bot: connect server fail: %v", err)
-		return
-	}
-	return c.join(conn)
+	return c.JoinServerWithDialer(&net.Dialer{}, fmt.Sprintf("%s:%d", addr, port))
 }
 
 // JoinServerWithDialer is similar to JoinServer but using a Dialer.
 func (c *Client) JoinServerWithDialer(d Dialer, addr string) (err error) {
+	return c.join(d, addr)
+}
+
+func (c *Client) join(d Dialer, addr string) (err error) {
 	conn, err := d.Dial("tcp", addr)
 	if err != nil {
 		err = fmt.Errorf("bot: connect server fail: %v", err)
-		return
+		return err
 	}
-	return c.join(conn)
-}
-
-// JoinConn join a Minecraft server through a connection for playing the game.
-func (c *Client) join(conn net.Conn) (err error) {
 	//Set Conn
 	c.conn = mcnet.WrapConn(conn)
 
-	//Get Addr
-	strform := c.conn.Socket.RemoteAddr().String()
-	var addr string
-	var port int
-	fmt.Sscanf(strform, "%s:%d", &addr, &port)
+	//Get Host and Port
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		err = fmt.Errorf("bot: connect server fail: %v", err)
+		return err
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		err = fmt.Errorf("bot: connect server fail: %v", err)
+		return err
+	}
 
 	//Handshake
 	err = c.conn.WritePacket(
@@ -52,7 +54,7 @@ func (c *Client) join(conn net.Conn) (err error) {
 		pk.Marshal(
 			0x00,                       //Handshake packet ID
 			pk.VarInt(ProtocolVersion), //Protocol version
-			pk.String(addr),            //Server's address
+			pk.String(host),            //Server's address
 			pk.UnsignedShort(port),
 			pk.Byte(2),
 		))
@@ -97,7 +99,7 @@ func (c *Client) join(conn net.Conn) (err error) {
 		case 0x02: //Login Success
 			// uuid, l := pk.UnpackString(pack.Data)
 			// name, _ := unpackString(pack.Data[l:])
-			return //switches the connection state to PLAY.
+			return nil
 		case 0x03: //Set Compression
 			var threshold pk.VarInt
 			if err := pack.Scan(&threshold); err != nil {
@@ -122,4 +124,14 @@ type Dialer interface {
 // Only used when you want to handle the packets by yourself
 func (c *Client) Conn() *mcnet.Conn {
 	return c.conn
+}
+
+// SendMessage sends a chat message.
+func (c *Client) SendMessage(msg string) error {
+	return c.conn.WritePacket(
+		pk.Marshal(
+			data.ChatServerbound,
+			pk.String(msg),
+		),
+	)
 }
