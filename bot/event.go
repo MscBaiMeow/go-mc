@@ -53,8 +53,6 @@ type eventBroker struct {
 
 	WindowsItem        func(id byte, slots []entity.Slot) error
 	WindowsItemChange  func(id byte, slotID int, slot entity.Slot) error
-	SpawnObj           func(EID int, UUID [16]byte, Type int, x, y, z float64, Pitch, Yaw float32, Data int, VelocityX, VelocitY, VelocitZ int16) error
-	EntityRelativeMove func(EID, DeltaX, DeltaY, DeltaZ int) error
 	Particle           func(ID int, longDistance bool, x, y, z float64, offsetX, offsetY, offsetZ float32, particleData float32, particleCount int) error
 	WindowConfirmation func(pkt ptypes.ConfirmTransaction) error
 
@@ -77,7 +75,6 @@ type eventBroker struct {
 	// ReceivePacket will be called when new packets arrive.
 	// The default handler will run only if pass == false.
 	ReceivePacket func(p pk.Packet) (pass bool, err error)
-	Test          func(EntityID int) error
 
 	// PrePhysics will be called before a phyiscs tick.
 	PrePhysics func() error

@@ -156,18 +156,8 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 
 	case data.DeclareRecipes:
 		// handleDeclareRecipesPacket(g, reader)
-	case data.EntityLookAndRelativeMove:
-		err = handleEntityRelativeMove(c, p)
-		//AutoFish不需要浮漂的朝向所以可以丢一起
-	case data.EntityHeadLook:
-		// handleEntityHeadLookPacket(g, reader)
-	case data.EntityRelativeMove:
-		err = handleEntityRelativeMove(c, p)
 	case data.KeepAliveClientbound:
 		err = handleKeepAlivePacket(c, p)
-
-	case data.SpawnEntity:
-		err = handleSpawnEntityPacket(c, p)
 	case data.NamedEntitySpawn:
 		err = handleSpawnPlayerPacket(c, p)
 	case data.SpawnEntityLiving:
@@ -216,11 +206,11 @@ func (c *Client) handlePacket(p pk.Packet) (disconnect bool, err error) {
 		err = handleSoundEffect(c, p)
 	case data.NamedSoundEffect:
 		err = handleNamedSoundEffect(c, p)
-	case data.SpawnObject:
-		err = handleSpawnObjectPacket(c, p)
+	case data.SpawnEntity:
+		err = handleSpawnEntityPacket(c, p)
 	case data.EntityMetadata:
-		err = handleEntityMetadata(c, p)
-	case data.Particle:
+		//err = handleEntityMetadata(c, p)
+	case data.WorldParticles:
 		err = handleParticle(c, p)
 	case data.Experience:
 		err = handleSetExperience(c, p)
@@ -787,38 +777,6 @@ func handleSetExperience(c *Client, p pk.Packet) (err error) {
 	return nil
 }
 
-func handleSpawnObjectPacket(c *Client, p pk.Packet) error {
-	if c.Events.SpawnObj == nil {
-		return nil
-	}
-	var (
-		EntityID, Type                  pk.VarInt
-		UUID                            pk.UUID
-		x, y, z                         pk.Double
-		Yaw, Pitch                      pk.Byte
-		VelocityX, VelocityY, VelocityZ pk.Short
-		Data                            pk.Int
-	)
-	err := p.Scan(&EntityID, &UUID, &Type, &x, &y, &z, &Pitch, &Yaw, &Data, &VelocityX, &VelocityY, &VelocityZ)
-	if err != nil {
-		return err
-	}
-	return c.Events.SpawnObj(
-		int(EntityID), [16]byte(UUID), int(Type),
-		float64(x), float64(y), float64(z), float32(Pitch), float32(Yaw), int(Data),
-		int16(VelocityX), int16(VelocityY), int16(VelocityZ))
-}
-
-func sendPlayerPositionAndLookPacket(c *Client) {
-	c.conn.WritePacket(pk.Marshal(
-		data.PlayerPositionAndLookServerbound,
-		pk.Double(c.X),
-		pk.Double(c.Y),
-		pk.Double(c.Z),
-		pk.Float(c.Yaw),
-		pk.Float(c.Pitch),
-		pk.Boolean(c.OnGround),
-	))
 func sendPlayerPositionAndLookPacket(c *Client) error {
 	return c.conn.WritePacket(ptypes.PositionAndLookServerbound{
 		X:        pk.Double(c.Pos.X),
@@ -845,33 +803,6 @@ func sendPlayerLookPacket(c *Client) error {
 		Pitch:    pk.Float(c.Pos.Pitch),
 		OnGround: pk.Boolean(c.Pos.OnGround),
 	}.Encode())
-}
-
-func handleEntityRelativeMove(c *Client, p pk.Packet) error {
-	if c.Events.EntityRelativeMove == nil {
-		return nil
-	}
-	var (
-		EID                    pk.VarInt
-		DeltaX, DeltaY, DeltaZ pk.Short
-	)
-	err := p.Scan(&EID, &DeltaX, &DeltaY, &DeltaZ)
-	if err != nil {
-		return err
-	}
-	return c.Events.EntityRelativeMove(int(EID), int(DeltaX), int(DeltaY), int(DeltaZ))
-}
-
-func handleEntityMetadata(c *Client, p pk.Packet) error {
-	if c.Events.Test == nil {
-		return nil
-	}
-	var EntityID pk.VarInt
-	p.Scan(&EntityID)
-	if EntityID != 102 {
-		return nil
-	}
-	return c.Events.Test(int(EntityID))
 }
 
 func handleParticle(c *Client, p pk.Packet) error {
